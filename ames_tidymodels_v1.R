@@ -21,32 +21,36 @@ create_report(train)
 train %>% ggplot(aes(SalePrice)) + geom_histogram()
 train <- train %>% mutate(SalePrice=log10(SalePrice))
 
-#### other transformation 
-train <- train %>% mutate(TotalBsmtSF=if_else(BsmtExposure=='NoBasement', 0,TotalBsmtSF))
-train <- train %>% mutate(MoSold=as.character(MoSold))
-train <- train %>% mutate(YrSold=as.character(YrSold))
-train <- train %>% mutate(MSSubClass=as.character(MSSubClass))
 train %>% count(YearBuilt)
 train %>% ggplot(aes(YearBuilt)) + geom_bar()
 train %>% ggplot(aes(YearBuilt,SalePrice)) + geom_point() + geom_smooth()
 
-
+recipes;;step_im
 ### rf recipe
-rf_recipe <- recipe(SalePrice ~ ., data=train) %>% 
+cols_to_none <- c("Alley", "BsmtQual", "BsmtCond", "BsmtExposure", "BsmtFinType1",
+                  "BsmtFinType2", "FireplaceQu", "GarageType", "GarageFinish",
+                  "GarageQual", "GarageCond", "PoolQC", "Fence", "MiscFeature")
+
+cols_to_char <- c("MSSubClass", "MoSold", "YrSold")
+
+rf_recipe <- recipe(SalePrice ~ ., data = train) %>%
   update_role(Id,new_role = "id variable") %>%
-  step_novel(all_nominal_predictors()) %>% 
-  step_unknown(all_nominal_predictors()) %>% 
-  step_impute_knn(all_numeric_predictors()) %>% 
-  step_zv(all_predictors()) 
+  # Convert specified numeric columns to character
+  step_mutate(across(all_of(cols_to_char), as.character)) %>%
+  # Handle new levels in nominal predictors that might appear in test set
+  step_novel(all_nominal_predictors()) %>%
+  # Replace NA with "None" for specific categorical features
+  # This is more accurate than mode imputation for these variables
+  step_unknown(all_of(cols_to_none), new_level = "None") %>%
+  # Impute remaining numeric predictors with knn
+  step_impute_knn(all_numeric_predictors()) %>%
+  # Catch-all for any other NA values in categorical columns
+  step_unknown(all_nominal_predictors(), new_level = "unknown") %>%
+  # Remove zero-variance predictors
+  step_zv(all_predictors())
  
-rf_prep_data <- prep(x = rf_recipe, training=train)
-
-plot_bar(rf_bake_train)
-
 ####model
 rf_model <- rand_forest(mode = 'regression') %>% set_engine("ranger")
-
-
 
 ### rf workflow
 rf_wflow <- 
@@ -55,9 +59,8 @@ rf_wflow <-
   add_recipe(rf_recipe)
 
 ### resampling
-
 set.seed(1001)
-train_folds <- bootstraps(train, times = 10)
+train_folds <- vfold_cv(train, v = 10,repeats = 5)
 
 keep_pred <- control_resamples(save_pred = TRUE, save_workflow = TRUE)
 
@@ -65,27 +68,15 @@ keep_pred <- control_resamples(save_pred = TRUE, save_workflow = TRUE)
 rf_res <- 
   rf_wflow %>% 
   fit_resamples(train_folds,control = keep_pred)
-
-
-rf_res_best_fit <- fit_best(rf_res)
-
-
+rf_res |> collect_metrics()
+### fit final model
+rf_final_fit <- fit(rf_wflow, train)
 
 #### test
-
 test <- read_csv("input/test.csv")
 
-#### other transformation 
-test <- test %>% mutate(TotalBsmtSF=if_else(BsmtExposure=='NoBasement', 0,TotalBsmtSF))
-test <- test %>% mutate(MoSold=as.character(MoSold))
-test <- test %>% mutate(YrSold=as.character(YrSold))
-test <- test %>% mutate(MSSubClass=as.character(MSSubClass))
-
-
-
-
 ### rf test
-rf_test_pred <- predict(rf_res_best_fit, test)
+rf_test_pred <- predict(rf_final_fit, test)
 
 rf_submission <- bind_cols(test %>% select(Id), rf_test_pred) %>% 
   mutate(SalePrice=10^.pred) %>% 
