@@ -25,7 +25,6 @@ train %>% count(YearBuilt)
 train %>% ggplot(aes(YearBuilt)) + geom_bar()
 train %>% ggplot(aes(YearBuilt,SalePrice)) + geom_point() + geom_smooth()
 
-recipes;;step_im
 ### rf recipe
 cols_to_none <- c("Alley", "BsmtQual", "BsmtCond", "BsmtExposure", "BsmtFinType1",
                   "BsmtFinType2", "FireplaceQu", "GarageType", "GarageFinish",
@@ -68,7 +67,7 @@ keep_pred <- control_resamples(save_pred = TRUE, save_workflow = TRUE)
 rf_res <- 
   rf_wflow %>% 
   fit_resamples(train_folds,control = keep_pred)
-rf_res |> collect_metrics()
+rf_res |> collect_metrics(summarize = F)
 ### fit final model
 rf_final_fit <- fit(rf_wflow, train)
 
