@@ -1,0 +1,51 @@
+---
+title: "Ames housing data exploratory data analysis"
+format: html
+editor: visual
+---
+
+
+```{r}
+library(tidyverse)
+library(DataExplorer)
+library(skimr)
+```
+
+Read training  data
+```{r}
+train <- read_csv("input/train.csv")
+train %>% glimpse()
+```
+
+Skim
+ ```{r}
+ train |> skimr::skim_without_charts()
+ 
+  ```
+
+Plot missing variables
+```{r}
+plot_missing(train)
+
+```
+
+Plot categorical variables
+```{r}
+plot_bar(train)
+
+```
+
+Plot numerical variables
+```{r}
+train %>% 
+  #group_by(OverallQual) %>% 
+  plot_histogram()
+```
+
+Plot target variable
+
+```{r}
+train %>% ggplot(aes(SalePrice)) + geom_histogram()
+
+```
+

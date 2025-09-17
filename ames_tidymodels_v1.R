@@ -5,32 +5,19 @@ library(tidymodels)
 
 train <- read_csv("input/train.csv")
 
-train %>% glimpse()
-skim_train <- skim_without_charts(train)
 
-plot_missing(train)
-plot_bar(train)
-
-train %>% 
-  group_by(OverallQual) %>% 
-  plot_histogram()
-
-create_report(train)
-
-### sale price plot
-train %>% ggplot(aes(SalePrice)) + geom_histogram()
+### sale price log transform
 train <- train %>% mutate(SalePrice=log10(SalePrice))
 
-train %>% count(YearBuilt)
-train %>% ggplot(aes(YearBuilt)) + geom_bar()
-train %>% ggplot(aes(YearBuilt,SalePrice)) + geom_point() + geom_smooth()
-
-### rf recipe
+### cols missing to none
 cols_to_none <- c("Alley", "BsmtQual", "BsmtCond", "BsmtExposure", "BsmtFinType1",
                   "BsmtFinType2", "FireplaceQu", "GarageType", "GarageFinish",
                   "GarageQual", "GarageCond", "PoolQC", "Fence", "MiscFeature")
 
+### numeric cols to char
 cols_to_char <- c("MSSubClass", "MoSold", "YrSold")
+
+### rf recipe
 
 rf_recipe <- recipe(SalePrice ~ ., data = train) %>%
   update_role(Id,new_role = "id variable") %>%
@@ -49,27 +36,31 @@ rf_recipe <- recipe(SalePrice ~ ., data = train) %>%
   step_zv(all_predictors())
  
 ####model
-rf_model <- rand_forest(mode = 'regression') %>% set_engine("ranger")
+rf_model <- rand_forest(mode = "regression") %>% set_engine("ranger")
 
 ### rf workflow
 rf_wflow <- 
   workflow() %>% 
-  add_model(rf_model) %>% 
+  add_model(rf_model) %>%
   add_recipe(rf_recipe)
 
 ### resampling
 set.seed(1001)
-train_folds <- vfold_cv(train, v = 10,repeats = 5)
+train_folds <- vfold_cv(train, v = 10, repeats = 5)
 
-keep_pred <- control_resamples(save_pred = TRUE, save_workflow = TRUE)
+rf_res <- rf_wflow %>% 
+  fit_resamples(train_folds,
+              control = control_resamples(
+                save_pred = TRUE, save_workflow = TRUE))
 
-
-rf_res <- 
-  rf_wflow %>% 
-  fit_resamples(train_folds,control = keep_pred)
+### rf metrics
 rf_res |> collect_metrics(summarize = F)
+
 ### fit final model
 rf_final_fit <- fit(rf_wflow, train)
+rf_final_fit |> write_rds("output/rf_final_fit.rds")
+
+
 
 #### test
 test <- read_csv("input/test.csv")
@@ -77,10 +68,11 @@ test <- read_csv("input/test.csv")
 ### rf test
 rf_test_pred <- predict(rf_final_fit, test)
 
+### kaggle submission file
 rf_submission <- bind_cols(test %>% select(Id), rf_test_pred) %>% 
   mutate(SalePrice=10^.pred) %>% 
   select(-.pred)
-rf_submission %>% write_csv('rf_submission.csv')
+rf_submission %>% write_csv("rf_submission.csv")
 
 
  
