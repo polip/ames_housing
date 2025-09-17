@@ -61,7 +61,6 @@ rf_final_fit <- fit(rf_wflow, train)
 rf_final_fit |> write_rds("output/rf_final_fit.rds")
 
 
-
 #### test
 test <- read_csv("input/test.csv")
 

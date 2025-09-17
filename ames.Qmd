@@ -2,6 +2,9 @@
 title: "Ames housing data exploratory data analysis"
 format: html
 editor: visual
+execute: 
+  warning: false
+  error: false
 ---
 
 
@@ -18,10 +21,11 @@ train %>% glimpse()
 ```
 
 Skim
+
  ```{r}
  train |> skimr::skim_without_charts()
  
-  ```
+ ```
 
 Plot missing variables
 ```{r}
