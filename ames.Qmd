@@ -12,6 +12,8 @@ execute:
 library(tidyverse)
 library(DataExplorer)
 library(skimr)
+library(tidymodels)
+library(ranger)
 ```
 
 Read training  data
@@ -53,3 +55,88 @@ train %>% ggplot(aes(SalePrice)) + geom_histogram()
 
 ```
 
+Modelling
+
+Target variable is log normal transformed in order to achieve more normal distribution
+
+```{r, eval=FALSE}
+train <- train %>% mutate(SalePrice=log10(SalePrice))
+
+```
+
+Columns for replacing missing values with None:
+
+```{r, eval=FALSE}
+cols_to_none <- c("Alley", "BsmtQual", "BsmtCond", "BsmtExposure", "BsmtFinType1",
+                  "BsmtFinType2", "FireplaceQu", "GarageType", "GarageFinish",
+                  "GarageQual", "GarageCond", "PoolQC", "Fence", "MiscFeature")
+
+```
+
+
+Numeric columns to transform to character
+
+```{r, eval=FALSE}
+cols_to_char <- c("MSSubClass", "MoSold", "YrSold")
+
+```
+
+Tidymodels recipe for data preparation
+
+
+```{r, eval=FALSE}
+rf_recipe <- recipe(SalePrice ~ ., data = train) %>%
+  update_role(Id,new_role = "id variable") %>%
+  # Convert specified numeric columns to character
+  step_mutate(across(all_of(cols_to_char), as.character)) %>%
+  # Handle new levels in nominal predictors that might appear in test set
+  step_novel(all_nominal_predictors()) %>%
+  # Replace NA with "None" for specific categorical features
+  # This is more accurate than mode imputation for these variables
+  step_unknown(all_of(cols_to_none), new_level = "None") %>%
+  # Impute remaining numeric predictors with knn
+  step_impute_knn(all_numeric_predictors()) %>%
+  # Catch-all for any other NA values in categorical columns
+  step_unknown(all_nominal_predictors(), new_level = "unknown") %>%
+  # Remove zero-variance predictors
+  step_zv(all_predictors())
+```
+
+Model and workflow specification
+```{r, eval=FALSE}
+rf_model <- rand_forest(mode = "regression") %>% set_engine("ranger")
+
+### rf workflow
+rf_wflow <- 
+  workflow() %>% 
+  add_model(rf_model) %>%
+  add_recipe(rf_recipe)
+```
+
+Resampling
+
+```{r, eval=FALSE}
+## resampling
+set.seed(1001)
+train_folds <- vfold_cv(train, v = 10, repeats = 5)
+
+rf_res <- rf_wflow %>% 
+  fit_resamples(train_folds,
+              control = control_resamples(
+                save_pred = TRUE, save_workflow = TRUE))
+
+```
+
+Resampling results summarized
+```{r}
+### rf metrics
+rf_res <- read_rds("output/rf_res.rds")
+rf_res |> collect_metrics(summarize = T)
+```
+
+Final fit on all training data
+```{r, eval=FALSE}
+### fit final model
+rf_final_fit <- fit(rf_wflow, train)
+rf_final_fit |> write_rds("output/rf_final_fit.rds")
+```

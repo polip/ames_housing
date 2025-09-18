@@ -1,9 +1,13 @@
 library(tidyverse)
 library(DataExplorer)
 library(skimr)
+library(vip)
 library(tidymodels)
+library(ranger)
+
 
 train <- read_csv("input/train.csv")
+
 
 
 ### sale price log transform
@@ -54,12 +58,13 @@ rf_res <- rf_wflow %>%
                 save_pred = TRUE, save_workflow = TRUE))
 
 ### rf metrics
+rf_res |> write_rds("output/rf_res.rds")
 rf_res |> collect_metrics(summarize = F)
 
 ### fit final model
 rf_final_fit <- fit(rf_wflow, train)
 rf_final_fit |> write_rds("output/rf_final_fit.rds")
-
+vip::vip(rf_final_fit)
 
 #### test
 test <- read_csv("input/test.csv")
