@@ -1,0 +1,17 @@
+file: ames_rf.rds
+file_size: 3475666
+pin_hash: 3dcb49d5fd625faf
+type: rds
+title: 'ames_rf: a pinned list'
+description: A ranger regression modeling workflow
+tags: ~
+urls: ~
+created: 20250919T060302Z
+api_version: 1
+user:
+  required_pkgs:
+  - parsnip
+  - ranger
+  - recipes
+  - workflows
+  renv_lock: ~
