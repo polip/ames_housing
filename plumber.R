@@ -11,9 +11,11 @@ if (FALSE) {
     library(ranger)
     library(recipes)
     library(workflows)
+    library(googleCloudStorageR)
 }
 
-b <- board_folder(  path="board", versioned=TRUE )
+gcs_auth()
+b <- board_gcs("ames-r-model", prefix = NULL)
 v <- vetiver_pin_read(b, "ames_rf")
 
 #* @plumber
