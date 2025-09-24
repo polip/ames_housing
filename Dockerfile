@@ -20,12 +20,28 @@ RUN apt-get update -qq && apt-get install -y --no-install-recommends \
     zlib1g-dev \
     libglpk-dev \
     pandoc \
+    libxml2-dev \
+    pandoc \
+    fontconfig \
+    libfreetype6-dev \
+    libfribidi-dev \
+    libharfbuzz-dev \
+    libjpeg-dev \
+    libpng-dev \
+    libtiff-dev \
+    libglpk-dev \
+    libsodium-dev \
+    libssl-dev \
+    libx11-dev \
+    make \
+    unzip \
+    zip \
+    zlib1g-dev \
     && apt-get clean
-
 
 COPY renv.lock renv.lock
 RUN Rscript -e "install.packages('renv')"
 RUN Rscript -e "renv::restore()"
 COPY plumber.R /opt/ml/plumber.R
-EXPOSE 8000
-ENTRYPOINT ["R", "-e", "pr <- plumber::plumb('/opt/ml/plumber.R'); pr$run(host = '0.0.0.0', port = 8000)"]
+EXPOSE 8080
+ENTRYPOINT ["R", "-e", "pr <- plumber::plumb('/opt/ml/plumber.R'); pr$run(host='0.0.0.0', port=as.numeric(Sys.getenv('PORT',8080)))"]

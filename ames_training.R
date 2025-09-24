@@ -69,7 +69,7 @@ vet_model <- vetiver_model(rf_final_fit, "ames_rf", save_prototype=train%>%selec
 
 ### local board
 board_local <- board_folder(path = "board",versioned = TRUE)
-##vet_model <- vetiver_pin_read(board = board_local, name = "ames_rf", "20250919T053824Z-34a6b")
+vet_model <- vetiver_pin_read(board = board_local, name = "ames_rf", "20250919T053824Z-34a6b")
 vetiver_pin_write(board_local, vet_model)
 pin_versions(board_local, "ames_rf")
 
@@ -82,7 +82,7 @@ vetiver_pin_write(board_gcs,vet_model)
 
 
 ### create plumber and docker file
-vetiver_write_plumber(name="ames_rf", file = "plumber.R", board=board_gcs)
+vetiver_write_plumber(name="ames_rf", file = "vetiver_plumber.R", board=board_gcs)
 vetiver_write_docker(vet_model, plumber_file = "plumber.R",base_image = glue::glue("FROM rocker/r-ver:{getRversion()}"))
 
 

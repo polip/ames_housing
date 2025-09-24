@@ -1,0 +1,33 @@
+docker build -t ames-api:gcs -f Dockerfile .
+
+gcloud artifacts repositories create my-repo \
+  --repository-format=docker \
+  --location=europe-central2 \
+  --description="Docker repo for Plumber API"
+
+
+gcloud auth login
+gcloud auth configure-docker europe-west12-docker.pkg.dev
+
+docker tag ames-api:gcs europe-west12-docker.pkg.dev/ames-housing-472418/docker-repo/ames-api:gcs
+
+docker push europe-west12-docker.pkg.dev/ames-housing-472418/docker-repo/ames-api:gcs
+
+gcloud projects add-iam-policy-binding ames-housing-472418 \
+  --member="serviceAccount:gcs-read-write@ames-housing-472418.iam.gserviceaccount.com" \
+  --role="roles/storage.objectAdmin"
+
+gcloud projects add-iam-policy-binding ames-housing-472418 \
+  --member="serviceAccount:gcs-read-write@ames-housing-472418.iam.gserviceaccount.com" \
+  --role="roles/artifactregistry.reader"
+
+
+gcloud run deploy ames-api \
+  --image=europe-west12-docker.pkg.dev/ames-housing-472418/docker-repo/ames-api:gcs \
+  --region=europe-west12 \
+  --platform=managed \
+  --service-account=gcs-read-write@ames-housing-472418.iam.gserviceaccount.com \
+  --allow-unauthenticated \
+  --project=ames-housing-472418
+
+  https://ames-api-576662713224.europe-west12.run.app/__docs__/

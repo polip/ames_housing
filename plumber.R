@@ -4,6 +4,8 @@ library(pins)
 library(plumber)
 library(rapidoc)
 library(vetiver)
+library(googleCloudStorageR)
+library(gargle)
 
 # Packages needed to generate model predictions
 if (FALSE) {
@@ -11,12 +13,26 @@ if (FALSE) {
     library(ranger)
     library(recipes)
     library(workflows)
-    library(googleCloudStorageR)
+    
 }
 
-gcs_auth()
-b <- board_gcs("ames-r-model", prefix = NULL)
-v <- vetiver_pin_read(b, "ames_rf")
+
+
+
+if (file.exists("ames-housing-472418-0f31c1a0322f.json")) {
+  message("🔑 Using local JSON key for GCS auth")
+  gcs_auth("ames-housing-472418-0f31c1a0322f.json")
+} else {
+  message("🔑 Using Application Default Credentials (Cloud Run)")
+  token <- gargle::token_fetch(
+      scopes = "https://www.googleapis.com/auth/cloud-platform"
+    )
+    gcs_auth(token = token)
+}
+  b <- board_gcs (bucket="ames-r-model", prefix = NULL)
+
+
+v <- vetiver_pin_read (b, "ames_rf")
 
 #* @plumber
 function(pr) {
