@@ -33,7 +33,7 @@ rf_recipe <- recipe(SalePrice ~ ., data = train) %>%
   step_zv(all_predictors())
  
 ####model
-rf_model <- rand_forest(mode = "regression") %>% set_engine("ranger")
+rf_model <- rand_forest(mode = "regression") %>% set_engine("ranger", importance = "impurity")
 
 ### rf workflow
 rf_wflow <- 
@@ -41,11 +41,12 @@ rf_wflow <-
   add_model(rf_model) %>%
   add_recipe(rf_recipe)
 
+
 ### resampling
 set.seed(1001)
 train_folds <- vfold_cv(train, v = 10, repeats = 5)
 
-rf_res <- rf_wflow %>% 
+rf_res <- rf_wflow%>% 
   fit_resamples(train_folds,
               control = control_resamples(
                 save_pred = TRUE, save_workflow = TRUE))
@@ -53,8 +54,10 @@ rf_res <- rf_wflow %>%
 ### rf metrics
 rf_res |> collect_metrics(summarize = F)
 
+
 ### fit final model
 rf_final_fit <- fit(rf_wflow, train)
+
 
 ### save vetiver versioned model
 library(plumber)
@@ -66,10 +69,10 @@ vet_model <- vetiver_model(rf_final_fit, "ames_rf", save_prototype=train%>%selec
 
 ### local board
 board_local <- board_folder(path = "board",versioned = TRUE)
-vet_model <- vetiver_pin_read(board = board_local, name = "ames_rf", "20250919T053824Z-34a6b")
+##vet_model <- vetiver_pin_read(board = board_local, name = "ames_rf", "20250919T053824Z-34a6b")
 vetiver_pin_write(board_local, vet_model)
+pin_versions(board_local, "ames_rf")
 
-## google cloud storage
 gcs_auth(json_file = "ames-housing-472418-0f31c1a0322f.json")
 gcs_list_buckets("ames-housing-472418")
 
