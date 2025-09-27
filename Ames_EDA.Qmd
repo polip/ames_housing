@@ -140,3 +140,10 @@ Final fit on all training data
 rf_final_fit <- fit(rf_wflow, train)
 rf_final_fit |> write_rds("output/rf_final_fit.rds")
 ```
+
+
+```{r, echo=FALSE}
+library(renv)
+renv::snapshot()
+rsconnect::writeManifest(appFiles = "Ames_EDA.Qmd")
+```
