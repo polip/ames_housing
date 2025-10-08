@@ -2,7 +2,7 @@ This is an R tidymodels script used for the estimation of sale prices in a Kaggl
 
 https://www.kaggle.com/competitions/house-prices-advanced-regression-techniques/overview
 
-API service is deployed to Google Cloud Ru servive on https://ames-api-576662713224.europe-west12.run.app/__docs__/
+API service is deployed to Google Cloud Run service: https://ames-api-576662713224.europe-west12.run.app/__docs__/
 
 You can test it using:
 
